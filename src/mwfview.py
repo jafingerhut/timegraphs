@@ -36,7 +36,7 @@ import math
 import sys 
 
 import threading
-import Queue
+import queue
 import pylab
 
 
@@ -279,7 +279,7 @@ class ThreadedClient:
         self.master = master
 
         # Create the queue
-        self.queue = Queue.Queue()
+        self.queue = queue.Queue()
 
         self.running = 1
 
@@ -299,7 +299,7 @@ class ThreadedClient:
                 msg = self.queue.get(0)
                 # There were some messages, so do update
                 doUpdate = 1
-            except Queue.Empty:
+            except queue.Empty:
                 doUpdate = 0 # don't do updates         
         if not self.running:
             # This is the brutal stop of the system. You may want to do
