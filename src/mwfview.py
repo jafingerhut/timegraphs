@@ -46,30 +46,46 @@ zcount = 0              # zoom level counter
 lastevtime = 0          # last event time(stamp) 
 
 
+debug_wheel_scroll_zoomx = False
+debug_gototf_Return = True
+
+
 def wheel_scroll_zoomx(event):
     global zcount
     global ax_sub1
     global canvas
     global r
     global lastevtime    
-    
+
     # calc delta event time
+    if lastevtime > event.time:
+        lastevtime = event.time
     deltatime = event.time-lastevtime
+    if debug_wheel_scroll_zoomx:
+        print('lastevtime=%s event.time=%s deltatime=%s'
+              '' % (lastevtime, event.time, deltatime))
     lastevtime = event.time    
     # if its a fast mousewheel move, its a low delta < 100 
     # then we want larger x move ammount - max one range
     # else for slow, move 0.05 (5%) of range 
     speedfact = 10.0*(100.0 - deltatime)/100.0
+    if debug_wheel_scroll_zoomx:
+        print('speedfact 1: %s' % (speedfact))
     if speedfact < 0.5: 
         speedfact = 0.5
     speedfact = int(math.ceil(speedfact))
     #~ print(speedfact)
+    if debug_wheel_scroll_zoomx:
+        print('speedfact final: %s' % (speedfact))
     
     # respond to Linux or Windows wheel event
     if event.num == 5 or event.delta == -120:
         zcount -= speedfact
     if event.num == 4 or event.delta == 120:
         zcount += speedfact
+    if debug_wheel_scroll_zoomx:
+        print('event.num=%s event.delta=%s zcount=%s'
+              '' % (event.num, event.delta, zcount))
     dfact = 1.0-(1.0/(1.1**zcount))
     xmin_datac, xmax_datac = ax_sub1.get_xlim()
 
@@ -79,6 +95,15 @@ def wheel_scroll_zoomx(event):
     if tmsgcoords == "":
         return
     tmsgcs = r.split(tmsgcoords)
+    if debug_wheel_scroll_zoomx:
+        print('tmsgcoords=%s' % (tmsgcoords))
+        print('tmsgcs=%s' % (tmsgcs))
+    idx = 0
+    while idx < len(tmsgcs) and tmsgcs[idx] != 'x':
+        idx += 1
+    tmsgcs = tmsgcs[idx:]
+    if debug_wheel_scroll_zoomx:
+        print('tmsgcs[1]=%s tmsgcs[3]=%s' % (tmsgcs[1], tmsgcs[3]))
     mous_xloc_datac = float(tmsgcs[1])
     mous_yloc_datac = float(tmsgcs[3])
     #~ print(mous_xloc_datac, mous_yloc_datac, xmin_datac, xmax_datac #, tmsgcs)
@@ -165,7 +190,6 @@ def mouse_wheel(event):
     global zcount
     global ax_sub1
     global canvas
-    global r
     
     # see if any modifier keys are pressed: 
     if event.state == 0: # no mod. keys pressed
@@ -182,6 +206,8 @@ def gototf_Return(self):
     global ax_sub1 
     gotoval = 0.0
     gototfs = gototf.get()
+    if debug_gototf_Return:
+        print('gototfs=%s' % (gototfs))
     if gototfs[0] == "c":
         try:        
             if gototfs[1] == "0": # send back cursors
@@ -541,8 +567,9 @@ class AnalysisTransitions:
 
 
 
-
+######################################################################
 # MAIN
+######################################################################
 
 # instantiate Tkinter
 root = tk.Tk()
@@ -553,8 +580,9 @@ root['bg'] = 'darkgreen'
 #  parsing in wheel_scroll_zoomx
 r = re.compile('[ =]+')
 
-
-# ##### GENERATE bottom frame
+########################################
+# GENERATE bottom frame
+########################################
 
 # bottom(er) frame - for additional textfields etc. 
 # this section should be *first*; then in window, the bottomer is *below* the navigation toolbar ?!
@@ -575,7 +603,7 @@ label = tk.Label(bottomer, font=('courier', 10, 'bold'), width=5)
 label.pack(side=tk.LEFT)
 label['text']="ZOOMX"
 
-zoomtf = tk.Entry(bottomer, width=5)
+zoomtf = tk.Entry(bottomer, width=8)
 zoomtf.pack(side=tk.LEFT,padx=5,pady=5)
 zoomtf.insert(0, "0")
 
@@ -583,7 +611,7 @@ labeldx = tk.Label(bottomer, font=('courier', 10, 'bold'), width=5)
 labeldx.pack(side=tk.LEFT)
 labeldx['text']="d|xyT"
 
-dxtf = tk.Entry(bottomer, width=5)
+dxtf = tk.Entry(bottomer, width=18)
 dxtf.pack(side=tk.LEFT,padx=5,pady=5)
 dxtf.insert(0, "0")
 
@@ -591,31 +619,33 @@ labeldy = tk.Label(bottomer, font=('courier', 10, 'bold'), width=5)
 labeldy.pack(side=tk.LEFT)
 labeldy['text']="d|xyB"
 
-dytf = tk.Entry(bottomer, width=5)
+dytf = tk.Entry(bottomer, width=18)
 dytf.pack(side=tk.LEFT,padx=5,pady=5)
 dytf.insert(0, "0")
 
-# ##### END GENERATE bottom frame
 
-
-# ##### GET DATA
+########################################
+# GET DATA
+########################################
 
 # load files - numpy.loadtxt, numpy.genfromtxt both work
 # may take a while for large files.. 
 # we assume len(chan1)=len(chan2) without checking here
 
 print("Loading chan1...")
-chan1 = np.loadtxt("chan1.dat")
+chan1 = np.loadtxt("chan1.py.dat")
 print("Loading chan2...")
-chan2 = np.loadtxt("chan2.dat")
+chan2 = np.loadtxt("chan2.py.dat")
+print("type(chan1)=%s len(chan1)=%s" % (type(chan1), len(chan1)))
 
 # for testing, use:
 #~ chan1=np.arange(0, 5, 0.05)
 #~ chan2=np.arange(0, 6, 0.06)
 
-# ##### END GET DATA  
 
-# ##### GENERATE TIMEBASE
+########################################
+# GENERATE TIMEBASE
+########################################
 
 # delta t - based on sampling freq, 25MHz
 frq=25e6
@@ -625,15 +655,19 @@ dt=1.0/frq
 endtime=(len(chan1))*dt
 print("dt, endtime:", dt, endtime)
 t = np.arange(0, endtime, dt)
+print("type(t)=%s len(t)=%s" % (type(t), len(t)))
 
 # ##### END GENERATE TIMEBASE 
 
 
 # at start, view starting 10% of loaded data
 startxlim = [t[0],t[int(0.1*len(chan1))]]
+print('startxlim=%s' % (startxlim))
 
 
-# ##### GENERATE Figure, plots
+########################################
+# GENERATE Figure, plots
+########################################
 
 f = Figure(figsize=(7,3), dpi=100)
 
@@ -642,7 +676,7 @@ ax_sub1.plot(t, chan1, 'b-')
 
 ax_sub1.set_xlim(startxlim[0],startxlim[1])
 ax_sub1.set_xlabel('time')
-ax_sub1.set_ylabel('chan1..')
+ax_sub1.set_ylabel('chan1')
 ax_sub1.grid(True)
 
 ax_sub2 = f.add_subplot(212)
@@ -650,13 +684,13 @@ ax_sub2.plot(t, chan2, 'r-')
 
 ax_sub2.set_xlim(startxlim[0],startxlim[1])
 ax_sub2.set_xlabel('time')
-ax_sub2.set_ylabel('chan2..')
+ax_sub2.set_ylabel('chan2')
 ax_sub2.grid(True)
 
-# ##### END GENERATE Figure, plots
 
-
-# ##### SETUP canvas, toolbar; 
+########################################
+# SETUP canvas, toolbar; 
+########################################
 
 # so that the plot is in the main Tk window, 
 #  and not in a separate window ! 
@@ -665,14 +699,14 @@ canvas = FigureCanvasTkAgg(f, master=root)
 canvas.show()
 canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
-toolbar = NavigationToolbar2TkAgg( canvas, root )
+toolbar = NavigationToolbar2TkAgg(canvas, root)
 toolbar.update()
 canvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
-# ##### END SETUP canvas, toolbar;
 
-
-# ##### ADD additional widgets - cursors, etc
+########################################
+# ADD additional widgets - cursors, etc
+########################################
 
 # cursors
 cursorT1 = SnaptoCursor(ax_sub1, t, chan1, 1)
@@ -692,10 +726,14 @@ threshold = 1.0
 #~ abmT = AnalysisTransitions(ax_sub1, t, chan1)
 #~ abmB = AnalysisTransitions(ax_sub2, t, chan2)
 
-# ##### END ADD additional widgets - cursors, etc
+########################################
+# END ADD additional widgets - cursors, etc
+########################################
 
 
-# ##### SETUP UI interaction bindings 
+########################################
+# SETUP UI interaction bindings 
+########################################
 
 # root.bind is OK; toolbar.bind passes, but no reaction
 # f.,a.bind don't work - tk_widget or not; canvas.get_tk_widget() is OK 
@@ -715,7 +753,9 @@ cidB1 = canvas.mpl_connect('button_press_event', cursorB1.updatePress)
 cidT2 = canvas.mpl_connect('button_press_event', cursorT2.updatePress)
 cidB2 = canvas.mpl_connect('button_press_event', cursorB2.updatePress)
 
-# ##### END SETUP UI interaction bindings
+########################################
+# END SETUP UI interaction bindings
+########################################
 
 
 # reset init bounds once more
