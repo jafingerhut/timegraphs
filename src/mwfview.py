@@ -6,7 +6,7 @@
 #~ * Mouse wheel - zoom in/out
 #~ * Ctrl+Mouse wheel - pan
 #~ * Shift+LeftClick - place cursor 1
-#~ * Ctrl+LeftClick - place cursor 2
+#~ * RightClick - place cursor 2
 #~ You can type in GOTO_XC textfield, and press Enter to update:
 #~ * c0 - set cursors to 0,0 and don't redraw
 #~ * c1 - go to cursor 1 position
@@ -418,6 +418,8 @@ class ScrollBarVis:
 
 
 
+debug_SnaptoCursor = True
+
 # http://matplotlib.sourceforge.net/examples/pylab_examples/cursor_demo.html
 class SnaptoCursor:
     """
@@ -428,7 +430,11 @@ class SnaptoCursor:
         # http://matplotlib.sourceforge.net/examples/axes_grid/simple_anchored_artists.html
         # Just an init here. Eelse we should use an Ellipse to render
         # a proper circle.
-        markrect = patches.Circle( (0.2, 0.2), radius=0.2, alpha=0.5, axes=ax, transform=ax.transData)
+        if debug_SnaptoCursor:
+            print('SnaptoCursor.__init__(self, ax=%s (%s), x=%s, y=%s, id=%s)'
+                  '' % (ax, type(ax), x, y, id))
+        markrect = patches.Circle((0.2, 0.2), radius=0.2, alpha=0.5,
+                                  axes=ax, transform=ax.transData)
         ax.add_artist(markrect)
 
         self.ax = ax
@@ -445,22 +451,32 @@ class SnaptoCursor:
         self.xpos = 0.0
         self.ypos = 0.0
         # text location in axes coords
-        self.txt = ax.text( 0.7, 0.9, '', transform=ax.transAxes)
+        self.txt = ax.text(0.7, 0.9, '', transform=ax.transAxes)
 
     def updatePress(self, event):
+        if debug_SnaptoCursor:
+            not_inaxes = not event.inaxes
+            print('SnaptoCursor.updatePress() not .inaxes=%s'
+                  ' .key=%s .button=%s .dblclick=%s self.id=%s'
+                  '' % (not_inaxes,
+                        event.key, event.button, event.dblclick, self.id))
         if not event.inaxes:
             return
         
         # Make sure the main window is in focus, else event.key will
         # be NULL, even if clicks are registered!
         
+        cursor_set_event = False
         if self.id == 1:
-            if event.key != "shift":
-                return
-
-        if self.id == 2:
-            if event.key != "control":
-                return
+            # Cursor 1 is moved by this kind of event
+            if event.button == 1 and event.key == "shift":
+                cursor_set_event = True
+        elif self.id == 2:
+            # Was originally: event.key == "control"
+            if event.button == 3:
+                cursor_set_event = True
+        if not cursor_set_event:
+            return
         
         x, y = event.xdata, event.ydata
 
@@ -473,8 +489,8 @@ class SnaptoCursor:
     def redraw(self):
 
         # update the line positions
-        self.lx.set_ydata(self.ypos )
-        self.ly.set_xdata(self.xpos )
+        self.lx.set_ydata(self.ypos)
+        self.ly.set_xdata(self.xpos)
         
         # find xpos, ypos, which are data coords - expressed in axes-coords
         tp = self.ax.transAxes.inverted().transform_point( self.ax.transData.transform_point( (self.xpos, self.ypos) ) )
@@ -487,7 +503,7 @@ class SnaptoCursor:
         # (2,2) - (1,1)
         tps = self.ax.transData.inverted().transform_point( (1, 1) )
         tpsb = self.ax.transData.inverted().transform_point( (2, 2) )
-        dpts = tpsb-tps
+        dpts = tpsb - tps
         
         # MUST USE ELLIPSE TO RENDER A CIRCLE, since here our x and y
         # scales are not equal!
@@ -508,7 +524,7 @@ class SnaptoCursor:
         self.markrect.set_zorder(100) # bring to foreground
         self.ax.add_artist(self.markrect)
 
-        self.txt.set_text('x=%1.2f, y=%1.2f' % (self.xpos,self.ypos))
+        self.txt.set_text('x=%1.2f, y=%1.2f' % (self.xpos, self.ypos))
 
 
 
