@@ -4,7 +4,7 @@
 #
 #~ Navigation instructions:
 #~ * Mouse wheel - zoom in/out
-#~ * Shift+Mouse wheen - pan
+#~ * Shift+Mouse wheel - pan
 #~ * Shift+LeftClick - place cursor 1
 #~ * Ctrl+LeftClick - place cursor 2
 #~ You can type in GOTO_XC textfield, and press Enter to update:
@@ -20,38 +20,32 @@
 
 import tkinter as tk
 import numpy as np
-
 import matplotlib
 matplotlib.use('TkAgg')
-
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
 from matplotlib.figure import Figure
-
 from matplotlib.backend_bases import MouseEvent
 import matplotlib.patches as patches
-
-import re  # no sscanf in python, use regexp
+import re
 import math
-
 import sys
-
 import threading
 import queue
 import pylab
 
 
-# some globals
-startxlim = [0.0,5.0]   # starting x range in data coordinates
+# globals
+startxlim = [0.0, 5.0]  # starting x range in data coordinates
 zcount = 0              # zoom level counter
 lastevtime = None       # last event time(stamp)
 first_delta_time = 1    # deltatime that should be calculated for first event
+# Create regular expression for x,y parsing in wheel_scroll_zoomx.
+xy_parsing_regex = re.compile('[ =]+')
 
-
-debug_wheel_scroll_zoomx = False
-debug_gototf_Return = True
 
 
 def set_xlim_all(xlim_min, xlim_max):
+    # modified in this function
     global ax_sub1
     global ax_sub2
 
@@ -60,32 +54,36 @@ def set_xlim_all(xlim_min, xlim_max):
 
 
 def wheel_scroll_zoomx(event):
+    # modified in this function
     global zcount
-    global ax_sub1
-    global canvas
-    global r
     global lastevtime
+    # read only in this function
     global first_delta_time
+    global ax_sub1
+    global startxlim
+
+    debug_wheel_scroll_zoomx = True
+    if debug_wheel_scroll_zoomx:
+        print('wheel_scroll_zoomx:', end='')
 
     # calc delta event time
     if lastevtime is None:
         lastevtime = event.time - first_delta_time
     deltatime = event.time - lastevtime
     if debug_wheel_scroll_zoomx:
-        print('lastevtime=%s event.time=%s deltatime=%s'
-              '' % (lastevtime, event.time, deltatime))
+        print(' deltatime=%s' % (deltatime), end='')
     lastevtime = event.time
     # If it is a fast mousewheel move, it is a low delta < 100
     # then we want larger x move ammount - max one range
     # else for slow, move 0.05 (5%) of range
-    speedfact = 10.0*(100.0 - deltatime)/100.0
+    speedfact = 10.0 * (100.0 - deltatime) / 100.0
     if debug_wheel_scroll_zoomx:
-        print('speedfact 1: %s' % (speedfact))
-    if speedfact < 0.5:
-        speedfact = 0.5
+        print(' speedfact 1: %s' % (speedfact), end='')
+    if speedfact < 1:
+        speedfact = 1
     speedfact = int(math.ceil(speedfact))
     if debug_wheel_scroll_zoomx:
-        print('speedfact final: %s' % (speedfact))
+        print(' final: %s' % (speedfact))
     
     # respond to Linux or Windows wheel event
     if event.num == 5 or event.delta == -120:
@@ -93,8 +91,8 @@ def wheel_scroll_zoomx(event):
     if event.num == 4 or event.delta == 120:
         zcount += speedfact
     if debug_wheel_scroll_zoomx:
-        print('event.num=%s event.delta=%s zcount=%s'
-              '' % (event.num, event.delta, zcount))
+        print(' zcount=%s' % (zcount), end='')
+        print('')
     xmin_datac, xmax_datac = ax_sub1.get_xlim()
 
     # Get the mouse x,y pos from x,y string written in toolbar.
@@ -102,29 +100,28 @@ def wheel_scroll_zoomx(event):
     tmsgcoords = toolbar.message.get()
     if tmsgcoords == "":
         return
-    tmsgcs = r.split(tmsgcoords)
-    if debug_wheel_scroll_zoomx:
-        print('tmsgcoords=%s' % (tmsgcoords))
-        print('tmsgcs=%s' % (tmsgcs))
+    tmsgcs = xy_parsing_regex.split(tmsgcoords)
+#    if debug_wheel_scroll_zoomx:
+#        print('tmsgcoords=%s' % (tmsgcoords))
+#        print('tmsgcs=%s' % (tmsgcs))
 
     # Skip past any other strings before the "x" for the x coord, e.g.
     # "pan/zoom".
-
     idx = 0
     while idx < len(tmsgcs) and tmsgcs[idx] != 'x':
         idx += 1
     tmsgcs = tmsgcs[idx:]
-    if debug_wheel_scroll_zoomx:
-        print('tmsgcs[1]=%s tmsgcs[3]=%s' % (tmsgcs[1], tmsgcs[3]))
+#    if debug_wheel_scroll_zoomx:
+#        print('tmsgcs[1]=%s tmsgcs[3]=%s' % (tmsgcs[1], tmsgcs[3]))
     mous_xloc_datac = float(tmsgcs[1])
     mous_yloc_datac = float(tmsgcs[3])
-    #~ print(mous_xloc_datac, mous_yloc_datac, xmin_datac, xmax_datac #, tmsgcs)
     
     oxrange = xmax_datac - xmin_datac
     odxright = xmax_datac - mous_xloc_datac
     odxleft = mous_xloc_datac - xmin_datac
     
-    # we need to refer to some constant starting range, then scaling works fine
+    # We need to refer to some constant starting range, then scaling
+    # works fine.
     newxrange = (startxlim[1] - startxlim[0]) / (1.1 ** zcount)
     nrxfact = newxrange / oxrange
     
@@ -135,14 +132,22 @@ def wheel_scroll_zoomx(event):
 
 
 def wheel_scroll_panx(event):
-    global zcount
+    # modified in this function
     global lastevtime
+    # read only in this function
+    global first_delta_time
     global ax_sub1
+
+    debug_wheel_scroll_panx = True
+    if debug_wheel_scroll_panx:
+        print('wheel_scroll_panx:', end='')
 
     # calc delta event time
     if lastevtime is None:
         lastevtime = event.time - first_delta_time
     deltatime = event.time - lastevtime
+    if debug_wheel_scroll_panx:
+        print(' deltatime=%s' % (deltatime), end='')
     lastevtime = event.time
     
     movedir = 0
@@ -155,21 +160,27 @@ def wheel_scroll_panx(event):
     xmin_datac, xmax_datac = ax_sub1.get_xlim()
     xrange = xmax_datac - xmin_datac
     
-    # if its a fast mousewheel move, its a low delta < 100
-    # then we want larger x move ammount - max one range
-    # else for slow, move 0.05 (5%) of range
-    speedfact = 2*(100.0 - deltatime)/100.0
+    # If it is a fast mousewheel move, it is a low delta < 100 then we
+    # want larger x move ammount - max one range.  Otherwise, for
+    # slow, move 0.05 (5%) of range.
+    speedfact = 2 * (100.0 - deltatime) / 100.0
     if speedfact < 0.05:
         speedfact = 0.05
+    if debug_wheel_scroll_panx:
+        print(' movedir=%s speedfact=%s' % (movedir, speedfact), end='')
+        print('')
     
-    xmoveammount = speedfact*movedir*xrange
+    xmoveammount = speedfact * movedir * xrange
     set_xlim_all(xmin_datac + xmoveammount, xmax_datac + xmoveammount)
     
     client.queue.put("update")
 
 
 def updateWindow():
+    # read only in this function
     global ax_sub1
+    global zcount
+
     #~ abmT.redraw() # should go fist, as they may delete the cursor ellipse
     #~ abmB.redraw()
     cursorT1.redraw()
@@ -188,23 +199,24 @@ def updateWindow():
     xmin_datac, xmax_datac = ax_sub1.get_xlim()
     xrange = xmax_datac - xmin_datac
     gototf.delete(0, tk.END)
-    gototf.insert(0, xmin_datac+0.5*xrange)
+    gototf.insert(0, xmin_datac + 0.5 * xrange)
     zoomtf.delete(0, tk.END)
     zoomtf.insert(0, zcount)
     dxtf.delete(0, tk.END)
-    dxtf.insert(0, "%.2e|%.2e" % (cursorT2.xpos - cursorT1.xpos, cursorT2.ypos - cursorT1.ypos))
+    dxtf.insert(0, "%.2e|%.2e" % (cursorT2.xpos - cursorT1.xpos,
+                                  cursorT2.ypos - cursorT1.ypos))
     dytf.delete(0, tk.END)
-    dytf.insert(0, "%.2e|%.2e" % (cursorB2.xpos - cursorB1.xpos, cursorB2.ypos - cursorB1.ypos))
-
+    dytf.insert(0, "%.2e|%.2e" % (cursorB2.xpos - cursorB1.xpos,
+                                  cursorB2.ypos - cursorB1.ypos))
 
 
 def mouse_wheel(event):
-    global zcount
-    global ax_sub1
-    global canvas
-    
-    print('mouse_wheel: event.state=%s' % (event.state))
-    # see if any modifier keys are pressed:
+    # See if any modifier keys are pressed.
+    debug_mouse_wheel = True
+
+    if debug_mouse_wheel:
+        print('\nmouse_wheel: event.state=%s .num=%s .delta=%s'
+              '' % (event.state, event.num, event.delta))
     if event.state == 0: # no mod. keys pressed
         wheel_scroll_zoomx(event)
     elif event.state == 1: # shift
@@ -216,7 +228,11 @@ def mouse_wheel(event):
 
 
 def gototf_Return(self):
+    # read only in this function
     global ax_sub1
+
+    debug_gototf_Return = True
+
     gotoval = 0.0
     gototfs = gototf.get()
     if debug_gototf_Return:
@@ -248,15 +264,17 @@ def gototf_Return(self):
         # parse number after bXX, and go to that marker...
         # 1-based type b1 to go to first (zeroth index) marker
         try:
-            gotoval = t[abmT.found[int(gototfs[1:])-1]]
+            gotoval = t[abmT.found[int(gototfs[1:]) - 1]]
         except:
-            print("Error, not going anywhere: ", sys.exc_info()[1], sys.exc_info()[0])
+            print("Error, not going anywhere: ",
+                  sys.exc_info()[1], sys.exc_info()[0])
             return
     else:
         try:
             gotoval = float(gototf.get())
         except:
-            print("Error, not going anywhere: ", sys.exc_info()[1], sys.exc_info()[0])
+            print("Error, not going anywhere: ",
+                  sys.exc_info()[1], sys.exc_info()[0])
             return
     # here we are fine,
     # center current zoom level around requested x value
@@ -269,20 +287,23 @@ def gototf_Return(self):
 
 
 def zoomtf_Return(self):
-    global ax_sub1
+    # modified in this function
     global zcount
+    # read only in this function
+    global ax_sub1
+    global startxlim
+
     zoomval = 0.0
     try:
         zoomval = int(zoomtf.get())
     except:
-        print("Error, not going anywhere: ", sys.exc_info()[1], sys.exc_info()[0])
+        print("Error, not going anywhere: ",
+              sys.exc_info()[1], sys.exc_info()[0])
         return
-    # here we are fine,
+
     zcount = zoomval
     
     # recalculate zoom in respect to midpoint
-    
-    dfact = 1.0-(1.0/(1.1**zcount))
     xmin_datac, xmax_datac = ax_sub1.get_xlim()
     
     oxrange = xmax_datac - xmin_datac
@@ -290,10 +311,9 @@ def zoomtf_Return(self):
     odxright = xmax_datac - mous_xloc_datac
     odxleft = mous_xloc_datac - xmin_datac
     
-    # we need to refer to some constant starting range, then scaling works fine
-    srange_half = (startxlim[1] - startxlim[0])/2.0
-    newxrange = ((startxlim[1] - srange_half * dfact) -
-                 (startxlim[0] + srange_half * dfact))
+    # We need to refer to some constant starting range, then scaling
+    # works fine.
+    newxrange = (startxlim[1] - startxlim[0]) / (1.1 ** zcount)
     nrxfact = newxrange / oxrange
     
     set_xlim_all(mous_xloc_datac - odxleft * nrxfact,
@@ -367,21 +387,30 @@ class ScrollBarVis:
     """
     def __init__(self, ax, t):
         self.wh=0.05
-        self.bar = patches.Rectangle( (0.0, 0.0), width=1.0, height=self.wh, alpha=0.5, axes=ax, transform=ax.transAxes, facecolor='#aaaaaa')
-        self.head = patches.Rectangle( (0.5, 0.0), width=0.1, height=self.wh, alpha=0.8, axes=ax, transform=ax.transAxes, facecolor='#aaaaaa')
+        self.bar = \
+            patches.Rectangle((0.0, 0.0), width=1.0, height=self.wh, alpha=0.5,
+                              axes=ax, transform=ax.transAxes,
+                              facecolor='#aaaaaa')
+        self.head = \
+            patches.Rectangle((0.5, 0.0), width=0.1, height=self.wh, alpha=0.8,
+                              axes=ax, transform=ax.transAxes,
+                              facecolor='#aaaaaa')
         self.ax = ax
         self.ax.add_artist(self.bar)
         self.ax.add_artist(self.head)
         self.t = t
 
     def redraw(self):
-        mint=self.t[0]
-        maxt=self.t[len(self.t)-1]
-        xmin_datac, xmax_datac = self.ax.get_xlim()	
-        l_rel = (xmin_datac - mint)/(maxt-mint)
-        r_rel = (xmax_datac - mint)/(maxt-mint)
+        mint = self.t[0]
+        maxt = self.t[len(self.t) - 1]
+        xmin_datac, xmax_datac = self.ax.get_xlim()
+        l_rel = (xmin_datac - mint) / (maxt - mint)
+        r_rel = (xmax_datac - mint) / (maxt - mint)
         self.head.remove()
-        self.head = patches.Rectangle( (l_rel, 0.0), width=r_rel-l_rel, height=self.wh, alpha=0.8, axes=self.ax, transform=self.ax.transAxes, facecolor='#aaaaaa')
+        self.head = \
+            patches.Rectangle((l_rel, 0.0), width=r_rel - l_rel, height=self.wh,
+                              alpha=0.8, axes=self.ax,
+                              transform=self.ax.transAxes, facecolor='#aaaaaa')
         self.ax.add_artist(self.head)
 
 
@@ -394,7 +423,8 @@ class SnaptoCursor:
     """
     def __init__(self, ax, x, y, id):
         # http://matplotlib.sourceforge.net/examples/axes_grid/simple_anchored_artists.html
-        # just an init here.. else we should use an Ellipse to render a proper circle
+        # Just an init here. Eelse we should use an Ellipse to render
+        # a proper circle.
         markrect = patches.Circle( (0.2, 0.2), radius=0.2, alpha=0.5, axes=ax, transform=ax.transData)
         ax.add_artist(markrect)
 
@@ -415,10 +445,11 @@ class SnaptoCursor:
         self.txt = ax.text( 0.7, 0.9, '', transform=ax.transAxes)
 
     def updatePress(self, event):
-        if not event.inaxes: return
+        if not event.inaxes:
+            return
         
-        # make sure the main window is in focus,
-        # else event.key will be NULL, even if clicks are registered!
+        # Make sure the main window is in focus, else event.key will
+        # be NULL, even if clicks are registered!
         
         if self.id == 1:
             if event.key != "shift":
@@ -447,24 +478,34 @@ class SnaptoCursor:
         otx, oty = self.txt.get_position()
         self.txt.set_position( (tp[0], oty) )
 
-        # find how big is a length of 1 in axes-coords in x and y direction, expessed in data coords (with current zoom)
-        # find the lengths as difference between axes-coords points (2,2) - (1,1)
+        # Find how big is a length of 1 in axes-coords in x and y
+        # direction, expessed in data coords (with current zoom).
+        # Find the lengths as difference between axes-coords points
+        # (2,2) - (1,1)
         tps = self.ax.transData.inverted().transform_point( (1, 1) )
         tpsb = self.ax.transData.inverted().transform_point( (2, 2) )
         dpts = tpsb-tps
         
-        # MUST USE ELLIPSE TO RENDER A CIRCLE,
-        # since here our x and y scales are not equal !
-        # if I draw in transAxes, I'll get a circle, but it will not stay put where it is..
-        # if I draw in transData, circle stays put (i.e. moves with data), but zoom will mess up its scale.. ..
-        # also, must remove then add - since "patches.Ellipse" has no method to change position
-        relCircleSize=15
+        # MUST USE ELLIPSE TO RENDER A CIRCLE, since here our x and y
+        # scales are not equal!
+
+        # If I draw in transAxes, I'll get a circle, but it will not
+        # stay put where it is.  If I draw in transData, circle stays
+        # put (i.e. moves with data), but zoom will mess up its scale.
+        # Also, must remove then add - since "patches.Ellipse" has no
+        # method to change position.
+        relCircleSize = 15
         self.markrect.remove()
-        self.markrect = patches.Ellipse( (self.xpos, self.ypos), width=relCircleSize*dpts[0], height=relCircleSize*dpts[1], alpha=0.6, axes=self.ax, transform=self.ax.transData, facecolor=self.color)
+        self.markrect = \
+            patches.Ellipse((self.xpos, self.ypos),
+                            width=relCircleSize * dpts[0],
+                            height=relCircleSize * dpts[1],
+                            alpha=0.6, axes=self.ax,
+                            transform=self.ax.transData, facecolor=self.color)
         self.markrect.set_zorder(100) # bring to foreground
         self.ax.add_artist(self.markrect)
 
-        self.txt.set_text( 'x=%1.2f, y=%1.2f'%(self.xpos,self.ypos) )
+        self.txt.set_text('x=%1.2f, y=%1.2f' % (self.xpos,self.ypos))
 
 
 
@@ -590,22 +631,21 @@ root = tk.Tk()
 root.title('MouseWheel Waveform Viewer')
 root['bg'] = 'darkgreen'
 
-# create regular expression , needed for x,y
-#  parsing in wheel_scroll_zoomx
-r = re.compile('[ =]+')
-
 ########################################
 # GENERATE bottom frame
 ########################################
 
 # bottom(er) frame - for additional textfields etc.
-# this section should be *first*; then in window, the bottomer is *below* the navigation toolbar ?!
-# use Frame to be able to align bottoms next to each other, on bottom of window
+# This section should be *first*; then in window, the bottomer is
+# *below* the navigation toolbar ?!  Use Frame to be able to align
+# bottoms next to each other, on bottom of window.
 bottomer = tk.Frame(root)
 bottomer.pack(side=tk.BOTTOM)
 
-# in order of appearance, left to right:
-label2 = tk.Label(bottomer, font=('courier', 10, 'bold'), width=7)
+bottomfont = ('courier', 10, 'bold')
+
+# In order of appearance, left to right:
+label2 = tk.Label(bottomer, font=bottomfont, width=7)
 label2.pack(side=tk.LEFT,padx=5,pady=5)
 label2['text']="GOTO_XC"
 
@@ -613,7 +653,7 @@ gototf = tk.Entry(bottomer, width=10)
 gototf.pack(side=tk.LEFT,padx=5,pady=5)
 gototf.insert(0, "[]")
 
-label = tk.Label(bottomer, font=('courier', 10, 'bold'), width=5)
+label = tk.Label(bottomer, font=bottomfont, width=5)
 label.pack(side=tk.LEFT)
 label['text']="ZOOMX"
 
@@ -621,7 +661,7 @@ zoomtf = tk.Entry(bottomer, width=8)
 zoomtf.pack(side=tk.LEFT,padx=5,pady=5)
 zoomtf.insert(0, "0")
 
-labeldx = tk.Label(bottomer, font=('courier', 10, 'bold'), width=5)
+labeldx = tk.Label(bottomer, font=bottomfont, width=5)
 labeldx.pack(side=tk.LEFT)
 labeldx['text']="d|xyT"
 
@@ -629,7 +669,7 @@ dxtf = tk.Entry(bottomer, width=18)
 dxtf.pack(side=tk.LEFT,padx=5,pady=5)
 dxtf.insert(0, "0")
 
-labeldy = tk.Label(bottomer, font=('courier', 10, 'bold'), width=5)
+labeldy = tk.Label(bottomer, font=bottomfont, width=5)
 labeldy.pack(side=tk.LEFT)
 labeldy['text']="d|xyB"
 
@@ -662,11 +702,11 @@ print("type(chan1)=%s len(chan1)=%s" % (type(chan1), len(chan1)))
 ########################################
 
 # delta t - based on sampling freq, 25MHz
-frq=25e6
-dt=1.0/frq
+frq = 25e6
+dt = 1.0 / frq
 # endtime is not included due open interval,
 # so can use len() instead of len()-1
-endtime=(len(chan1))*dt
+endtime = len(chan1) * dt
 print("dt, endtime:", dt, endtime)
 t = np.arange(0, endtime, dt)
 print("type(t)=%s len(t)=%s" % (type(t), len(t)))
@@ -675,7 +715,7 @@ print("type(t)=%s len(t)=%s" % (type(t), len(t)))
 
 
 # at start, view starting 10% of loaded data
-startxlim = [t[0],t[int(0.1*len(chan1))]]
+startxlim = [t[0], t[int(0.1 * len(chan1))]]
 print('startxlim=%s' % (startxlim))
 
 
@@ -688,7 +728,7 @@ f = Figure(figsize=(7,3), dpi=100)
 ax_sub1 = f.add_subplot(211)
 ax_sub1.plot(t, chan1, 'b-')
 
-ax_sub1.set_xlim(startxlim[0],startxlim[1])
+ax_sub1.set_xlim(startxlim[0], startxlim[1])
 ax_sub1.set_xlabel('time')
 ax_sub1.set_ylabel('chan1')
 ax_sub1.grid(True)
@@ -696,7 +736,7 @@ ax_sub1.grid(True)
 ax_sub2 = f.add_subplot(212)
 ax_sub2.plot(t, chan2, 'r-')
 
-ax_sub2.set_xlim(startxlim[0],startxlim[1])
+ax_sub2.set_xlim(startxlim[0], startxlim[1])
 ax_sub2.set_xlabel('time')
 ax_sub2.set_ylabel('chan2')
 ax_sub2.grid(True)
@@ -706,9 +746,8 @@ ax_sub2.grid(True)
 # SETUP canvas, toolbar;
 ########################################
 
-# so that the plot is in the main Tk window,
-#  and not in a separate window !
-# it is a tk.DrawingArea
+# So that the plot is in the main Tk window, and not in a separate
+# window!  it is a tk.DrawingArea
 canvas = FigureCanvasTkAgg(f, master=root)
 canvas.show()
 canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
