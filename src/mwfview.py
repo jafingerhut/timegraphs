@@ -64,14 +64,16 @@ def wheel_scroll_zoomx(event, deltatime):
     if debug_wheel_scroll_zoomx:
         print('wheel_scroll_zoomx:', end='')
 
-    # If it is a fast mousewheel move, it is a low delta < 100
-    # then we want larger x move ammount - max one range
-    # else for slow, move 0.05 (5%) of range
-    speedfact = 10.0 * (100.0 - deltatime) / 100.0
+    # Use deltatime to calculate a change in zcount from
+    # min_zcount_change to max_zcount_change.  Faster moves give
+    # larger changes.
+    max_zcount_change = 5
+    min_zcount_change = 1
+    speedfact = max_zcount_change * (100.0 - deltatime) / 100.0
     if debug_wheel_scroll_zoomx:
         print(' speedfact 1: %s' % (speedfact), end='')
-    if speedfact < 1:
-        speedfact = 1
+    if speedfact < min_zcount_change:
+        speedfact = min_zcount_change
     speedfact = int(math.ceil(speedfact))
     if debug_wheel_scroll_zoomx:
         print(' final: %s' % (speedfact))
@@ -140,12 +142,14 @@ def wheel_scroll_panx(event, deltatime):
     xmin_datac, xmax_datac = ax_sub1.get_xlim()
     xrange = xmax_datac - xmin_datac
     
-    # If it is a fast mousewheel move, it is a low delta < 100 then we
-    # want larger x move ammount - max one range.  Otherwise, for
-    # slow, move 0.05 (5%) of range.
-    speedfact = 2 * (100.0 - deltatime) / 100.0
-    if speedfact < 0.05:
-        speedfact = 0.05
+    # Use deltatime to calculate a change in zcount from
+    # min_zcount_change to max_zcount_change.  Faster moves give
+    # larger changes.
+    min_move = 0.05
+    max_move = 0.35
+    speedfact = max_move * (100.0 - deltatime) / 100.0
+    if speedfact < min_move:
+        speedfact = min_move
     if debug_wheel_scroll_panx:
         print(' movedir=%s speedfact=%s' % (movedir, speedfact), end='')
         print('')
