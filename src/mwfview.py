@@ -38,7 +38,7 @@ import pylab
 startxlim = [0.0, 5.0]  # starting x range in data coordinates
 zcount = 0              # zoom level counter
 lastevtime = None       # last event time(stamp)
-first_delta_time = 1    # deltatime that should be calculated for first event
+first_delta_time = 1000 # deltatime that should be calculated for first event
 # Create regular expression for x,y parsing in wheel_scroll_zoomx.
 xy_parsing_regex = re.compile('[ =]+')
 
@@ -53,12 +53,10 @@ def set_xlim_all(xlim_min, xlim_max):
         ax.set_xlim(xlim_min, xlim_max)
 
 
-def wheel_scroll_zoomx(event):
+def wheel_scroll_zoomx(event, deltatime):
     # modified in this function
     global zcount
-    global lastevtime
     # read only in this function
-    global first_delta_time
     global ax_sub1
     global startxlim
 
@@ -66,13 +64,6 @@ def wheel_scroll_zoomx(event):
     if debug_wheel_scroll_zoomx:
         print('wheel_scroll_zoomx:', end='')
 
-    # calc delta event time
-    if lastevtime is None:
-        lastevtime = event.time - first_delta_time
-    deltatime = event.time - lastevtime
-    if debug_wheel_scroll_zoomx:
-        print(' deltatime=%s' % (deltatime), end='')
-    lastevtime = event.time
     # If it is a fast mousewheel move, it is a low delta < 100
     # then we want larger x move ammount - max one range
     # else for slow, move 0.05 (5%) of range
@@ -131,25 +122,14 @@ def wheel_scroll_zoomx(event):
     client.queue.put("update")
 
 
-def wheel_scroll_panx(event):
-    # modified in this function
-    global lastevtime
+def wheel_scroll_panx(event, deltatime):
     # read only in this function
-    global first_delta_time
     global ax_sub1
 
     debug_wheel_scroll_panx = True
     if debug_wheel_scroll_panx:
         print('wheel_scroll_panx:', end='')
 
-    # calc delta event time
-    if lastevtime is None:
-        lastevtime = event.time - first_delta_time
-    deltatime = event.time - lastevtime
-    if debug_wheel_scroll_panx:
-        print(' deltatime=%s' % (deltatime), end='')
-    lastevtime = event.time
-    
     movedir = 0
     # respond to Linux or Windows wheel event
     if event.num == 5 or event.delta == -120:
@@ -211,19 +191,30 @@ def updateWindow():
 
 
 def mouse_wheel(event):
+    # modified in this function
+    global lastevtime
+    # read only in this function
+    global first_delta_time
+
     # See if any modifier keys are pressed.
     debug_mouse_wheel = True
 
+    # calc delta event time
+    if lastevtime is None:
+        lastevtime = event.time - first_delta_time
+    deltatime = event.time - lastevtime
+    lastevtime = event.time
+
     if debug_mouse_wheel:
-        print('\nmouse_wheel: event.state=%s .num=%s .delta=%s'
-              '' % (event.state, event.num, event.delta))
-    if event.state == 0: # no mod. keys pressed
-        wheel_scroll_zoomx(event)
-    elif event.state == 1: # shift
-        wheel_scroll_panx(event)
-    elif event.state == 4: # ctrl
+        print('\nmouse_wheel: event.state=%s .num=%s .delta=%s deltatime=%s'
+              '' % (event.state, event.num, event.delta, deltatime))
+    if event.state == 0: # no modifier keys pressed
+        wheel_scroll_zoomx(event, deltatime)
+    elif event.state == 1: # shift key held down
+        wheel_scroll_panx(event, deltatime)
+    elif event.state == 4: # ctrl key held down
         pass
-    elif event.state == 8: # alt
+    elif event.state == 8: # alt key held down
         pass
 
 
