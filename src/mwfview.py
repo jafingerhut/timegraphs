@@ -4,7 +4,7 @@
 #
 #~ Navigation instructions:
 #~ * Mouse wheel - zoom in/out
-#~ * Shift+Mouse wheel - pan
+#~ * Ctrl+Mouse wheel - pan
 #~ * Shift+LeftClick - place cursor 1
 #~ * Ctrl+LeftClick - place cursor 2
 #~ You can type in GOTO_XC textfield, and press Enter to update:
@@ -211,9 +211,9 @@ def mouse_wheel(event):
     if event.state == 0: # no modifier keys pressed
         wheel_scroll_zoomx(event, deltatime)
     elif event.state == 1: # shift key held down
-        wheel_scroll_panx(event, deltatime)
-    elif event.state == 4: # ctrl key held down
         pass
+    elif event.state == 4: # ctrl key held down
+        wheel_scroll_panx(event, deltatime)
     elif event.state == 8: # alt key held down
         pass
 
