@@ -744,7 +744,7 @@ print('startxlim=%s' % (startxlim))
 
 f = Figure(figsize=(7,3), dpi=100)
 
-ax_sub1 = f.add_subplot(211)
+ax_sub1 = f.add_subplot(2, 1, 1)
 ax_sub1.plot(t, chan1, 'b-')
 
 ax_sub1.set_xlim(startxlim[0], startxlim[1])
@@ -752,7 +752,7 @@ ax_sub1.set_xlabel('time')
 ax_sub1.set_ylabel('chan1')
 ax_sub1.grid(True)
 
-ax_sub2 = f.add_subplot(212)
+ax_sub2 = f.add_subplot(2, 1, 2)
 ax_sub2.plot(t, chan2, 'r-')
 
 ax_sub2.set_xlim(startxlim[0], startxlim[1])
