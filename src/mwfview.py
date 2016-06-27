@@ -53,6 +53,14 @@ def set_xlim_all(xlim_min, xlim_max):
         ax.set_xlim(xlim_min, xlim_max)
 
 
+def mouse_wheel_up(event):
+    return event.num == 5 or event.delta == -120
+
+
+def mouse_wheel_down(event):
+    return event.num == 4 or event.delta == 120
+
+
 def wheel_scroll_zoomx(event, deltatime):
     # modified in this function
     global zcount
@@ -79,9 +87,9 @@ def wheel_scroll_zoomx(event, deltatime):
         print(' final: %s' % (speedfact))
     
     # respond to Linux or Windows wheel event
-    if event.num == 5 or event.delta == -120:
+    if mouse_wheel_up(event):
         zcount -= speedfact
-    if event.num == 4 or event.delta == 120:
+    elif mouse_wheel_down(event):
         zcount += speedfact
     if debug_wheel_scroll_zoomx:
         print(' zcount=%s' % (zcount), end='')
@@ -134,9 +142,9 @@ def wheel_scroll_panx(event, deltatime):
 
     movedir = 0
     # respond to Linux or Windows wheel event
-    if event.num == 5 or event.delta == -120:
+    if mouse_wheel_up(event):
         movedir = -1
-    if event.num == 4 or event.delta == 120:
+    elif mouse_wheel_down(event):
         movedir = 1
     
     xmin_datac, xmax_datac = ax_sub1.get_xlim()
