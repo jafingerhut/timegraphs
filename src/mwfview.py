@@ -32,6 +32,9 @@ import sys
 import threading
 import queue
 import pylab
+import time
+import pprint
+from matplotlib.cbook import CallbackRegistry
 
 
 # globals
@@ -41,6 +44,8 @@ lastevtime = None       # last event time(stamp)
 first_delta_time = 1000 # deltatime that should be calculated for first event
 # Create regular expression for x,y parsing in wheel_scroll_zoomx.
 xy_parsing_regex = re.compile('[ =]+')
+first_update_time = None
+num_xlim_changed_events = 0
 
 
 
@@ -49,8 +54,32 @@ def set_xlim_all(xlim_min, xlim_max):
     global ax_sub1
     global ax_sub2
 
+    debug_set_xlim_all = False
+
+    if debug_set_xlim_all:
+        print('set_xlim_all: [%10.8f, %10.8f]' % (xlim_min, xlim_max), end='')
     for ax in [ax_sub1, ax_sub2]:
-        ax.set_xlim(xlim_min, xlim_max)
+        # This is probably a bit too much of a hack, and there is a
+        # better way to structure the GUI code than I have done here,
+        # but if we unconditionally call set_xlim here, then there is
+        # an infinite recursion of calls between
+        # do_axes_xlim_changed() and this function when either one of
+        # them is called.
+
+        # This can be avoided by only calling set_xlim here only if it
+        # actually causes a change to the axes in question.
+        cur_viewlim_points = ax.viewLim.get_points()
+        cur_xmin = cur_viewlim_points[0][0]
+        cur_xmax = cur_viewlim_points[1][0]
+        if cur_xmin == xlim_min and cur_xmax == xlim_max:
+            if debug_set_xlim_all:
+                print(' %s skip' % (ax.rowNum), end='')
+        else:
+            if debug_set_xlim_all:
+                print(' %s call' % (ax.rowNum), end='')
+            ax.set_xlim(xlim_min, xlim_max)
+    if debug_set_xlim_all:
+        print('')
 
 
 def mouse_wheel_up(event):
@@ -68,7 +97,7 @@ def wheel_scroll_zoomx(event, deltatime):
     global ax_sub1
     global startxlim
 
-    debug_wheel_scroll_zoomx = True
+    debug_wheel_scroll_zoomx = False
     if debug_wheel_scroll_zoomx:
         print('wheel_scroll_zoomx:', end='')
 
@@ -84,7 +113,7 @@ def wheel_scroll_zoomx(event, deltatime):
         speedfact = min_zcount_change
     speedfact = int(math.ceil(speedfact))
     if debug_wheel_scroll_zoomx:
-        print(' final: %s' % (speedfact))
+        print(' final: %s' % (speedfact), end='')
     
     # respond to Linux or Windows wheel event
     if mouse_wheel_up(event):
@@ -136,7 +165,7 @@ def wheel_scroll_panx(event, deltatime):
     # read only in this function
     global ax_sub1
 
-    debug_wheel_scroll_panx = True
+    debug_wheel_scroll_panx = False
     if debug_wheel_scroll_panx:
         print('wheel_scroll_panx:', end='')
 
@@ -169,9 +198,18 @@ def wheel_scroll_panx(event, deltatime):
 
 
 def updateWindow():
+    # modified in this function
+    global first_update_time
     # read only in this function
     global ax_sub1
     global zcount
+
+    debug_updateWindow = False
+    if debug_updateWindow:
+        now = time.time()
+        if first_update_time is None:
+            first_update_time = now
+        print('updateWindow: time=%s' % (now - first_update_time))
 
     #~ abmT.redraw() # should go fist, as they may delete the cursor ellipse
     #~ abmB.redraw()
@@ -209,7 +247,7 @@ def mouse_wheel(event):
     global first_delta_time
 
     # See if any modifier keys are pressed.
-    debug_mouse_wheel = True
+    debug_mouse_wheel = False
 
     # calc delta event time
     if lastevtime is None:
@@ -230,11 +268,56 @@ def mouse_wheel(event):
         pass
 
 
+def do_axes_xlim_changed(event):
+    # modified in this function
+    global num_xlim_changed_events
+
+    debug_do_axes_xlim_changed = False
+
+    num_xlim_changed_events += 1
+#    if num_xlim_changed_events == 10:
+#        print('do_axes_xlim_changed: event=%s event.__dict__='
+#              '' % (event))
+#        pprint.pprint(event.__dict__)
+#        print('    event.xaxis.__dict__=')
+#        pprint.pprint(event.xaxis.__dict__)
+#        print('    event.yaxis.__dict__=')
+#        pprint.pprint(event.yaxis.__dict__)
+#    print('do_axes_xlim_changed: #%d numCols=%s numRows=%s rowNum=%s colNum=%s'
+#          '' % (num_xlim_changed_events,
+#                event.numCols, event.numRows, event.rowNum, event.colNum))
+#    print('    transAxes=%s' % (event.transAxes))
+#    print('    transLimits=%s' % (event.transLimits))
+#    print('    viewLim=%s' % (event.viewLim))
+#    print('ax_sub1.__dict__=')
+#    pprint.pprint(ax_sub1.__dict__)
+
+    if debug_do_axes_xlim_changed:
+        viewLim_points = ax_sub1.viewLim.get_points()
+        xmin = viewLim_points[0][0]
+        ymin = viewLim_points[0][1]
+        xmax = viewLim_points[1][0]
+        ymax = viewLim_points[1][1]
+
+        print('event.rowNum=%s' % (event.rowNum))
+        print('    event.viewLim   x [%10.8f, %10.8f]'
+              '' % (event.viewLim.x0, event.viewLim.x1))
+        print('    ax_sub1.viewLim x [%10.8f, %10.8f]'
+              '' % (xmin, xmax))
+        print('    event.viewLim   y [%10.8f, %10.8f]'
+              '' % (event.viewLim.y0, event.viewLim.y1))
+        print('    ax_sub1.viewLim y [%10.8f, %10.8f]'
+              '' % (ymin, ymax))
+
+    set_xlim_all(event.viewLim.x0, event.viewLim.x1)
+    client.queue.put("update")
+
+
 def gototf_Return(self):
     # read only in this function
     global ax_sub1
 
-    debug_gototf_Return = True
+    debug_gototf_Return = False
 
     gotoval = 0.0
     gototfs = gototf.get()
@@ -418,7 +501,7 @@ class ScrollBarVis:
 
 
 
-debug_SnaptoCursor = True
+debug_SnaptoCursor = False
 
 # http://matplotlib.sourceforge.net/examples/pylab_examples/cursor_demo.html
 class SnaptoCursor:
@@ -645,6 +728,8 @@ class AnalysisTransitions:
 # MAIN
 ######################################################################
 
+debug_main = False
+
 # instantiate Tkinter
 root = tk.Tk()
 root.title('MouseWheel Waveform Viewer')
@@ -709,7 +794,8 @@ print("Loading chan1...")
 chan1 = np.loadtxt("chan1.py.dat")
 print("Loading chan2...")
 chan2 = np.loadtxt("chan2.py.dat")
-print("type(chan1)=%s len(chan1)=%s" % (type(chan1), len(chan1)))
+if debug_main:
+    print("type(chan1)=%s len(chan1)=%s" % (type(chan1), len(chan1)))
 
 # for testing, use:
 #~ chan1=np.arange(0, 5, 0.05)
@@ -726,16 +812,19 @@ dt = 1.0 / frq
 # endtime is not included due open interval,
 # so can use len() instead of len()-1
 endtime = len(chan1) * dt
-print("dt, endtime:", dt, endtime)
+if debug_main:
+    print("dt, endtime:", dt, endtime)
 t = np.arange(0, endtime, dt)
-print("type(t)=%s len(t)=%s" % (type(t), len(t)))
+if debug_main:
+    print("type(t)=%s len(t)=%s" % (type(t), len(t)))
 
 # ##### END GENERATE TIMEBASE
 
 
 # at start, view starting 10% of loaded data
 startxlim = [t[0], t[int(0.1 * len(chan1))]]
-print('startxlim=%s' % (startxlim))
+if debug_main:
+    print('startxlim=%s' % (startxlim))
 
 
 ########################################
@@ -746,6 +835,8 @@ f = Figure(figsize=(7,3), dpi=100)
 
 ax_sub1 = f.add_subplot(2, 1, 1)
 ax_sub1.plot(t, chan1, 'b-')
+if debug_main:
+    print('type(ax_sub1)=%s ax_sub1=%s' % (type(ax_sub1), ax_sub1))
 
 ax_sub1.set_xlim(startxlim[0], startxlim[1])
 ax_sub1.set_xlabel('time')
@@ -759,6 +850,21 @@ ax_sub2.set_xlim(startxlim[0], startxlim[1])
 ax_sub2.set_xlabel('time')
 ax_sub2.set_ylabel('chan2')
 ax_sub2.grid(True)
+
+# In xlim_changed or ylim_changed callback events on the axes, ax_sub1
+# should have rowNum=0, colNum=0.  ax_sub2 will have rowNum=1 colNum=0.
+axis = [ [ax_sub1],
+         [ax_sub2] ]
+
+# I want panning of one graph in the X direction to cause the other
+# graph(s) to move with them.  One way to do that is to register a
+# callback function for the event that the limits of a graph's X axis
+# have changed, and update other axes if necessary.
+
+# Inspired by example code found here:
+# http://matplotlib.org/examples/event_handling/viewlims.html
+for ax in [ax_sub1, ax_sub2]:
+    ax.callbacks.connect('xlim_changed', do_axes_xlim_changed)
 
 
 ########################################
