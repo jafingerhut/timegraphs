@@ -13,18 +13,26 @@ print(len(t))
 print("%d, %d" % (t[0], t[len(t)-1]))
 
 # scale this array with the period duration of fs=25MHz
-t=t*(1/25e6)
+t = t * (1 / 25e6)
 
 # printout first and last element - should be '0.000000, 0.040000'
-print("%f, %f" % (t[0], t[len(t)-1]))
+print("%f, %f" % (t[0], t[len(t) - 1]))
 
 # generate data according to equations
 # no need to be careful for element-by-element vector multiplication (.*) here;
 # here we work with 'arrays', not mathematical 'vector' concepts
 # (so, only element-by-element multiplication is possible by default) :
-fa1=3e3; fb1=50; fa2=4e3; fb2=60; pi=numpy.pi;
-chan1= 100*t*numpy.sin(2*pi*fb1*t)*numpy.sin(2*pi*fa1*t*numpy.sin(2*pi*fb1*t));
-chan2= 100*t*numpy.sin(2*pi*fb2*t)*numpy.sin(2*pi*fa2*t*numpy.sin(2*pi*fb2*t));
+fa1 = 3e3;
+fb1 = 50;
+fa2 = 4e3;
+fb2 = 60;
+pi = numpy.pi;
+chan1 = (100 * t *
+         numpy.sin(2 * pi * fb1 * t) *
+         numpy.sin(2 * pi * fa1 * t * numpy.sin(2 * pi * fb1 * t)));
+chan2 = (100 * t *
+         numpy.sin(2 * pi * fb2 * t) *
+         numpy.sin(2 * pi * fa2 * t * numpy.sin(2 * pi * fb2 * t)));
 
 # printout size - same as t
 print(len(chan1))
@@ -57,7 +65,7 @@ $dumpvars
           file=f)
     # Print initial values without a '#' line for the time, followed
     # by changes in values at later times.
-    for i in range(0,len(t)):
+    for i in range(0, len(t)):
         now = t[i]
         if i != 0:
             print('#%d' % (int(now * 1000000000.0)), file=f)

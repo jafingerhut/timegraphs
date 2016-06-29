@@ -21,9 +21,17 @@ print("%f, %f" % (t[0], t[len(t)-1]))
 # no need to be careful for element-by-element vector multiplication (.*) here;
 # here we work with 'arrays', not mathematical 'vector' concepts
 # (so, only element-by-element multiplication is possible by default) :
-fa1=3e3; fb1=50; fa2=4e3; fb2=60; pi=numpy.pi;
-chan1= 100*t*numpy.sin(2*pi*fb1*t)*numpy.sin(2*pi*fa1*t*numpy.sin(2*pi*fb1*t));
-chan2= 100*t*numpy.sin(2*pi*fb2*t)*numpy.sin(2*pi*fa2*t*numpy.sin(2*pi*fb2*t));
+fa1 = 3e3;
+fb1 = 50;
+fa2 = 4e3;
+fb2 = 60;
+pi = numpy.pi;
+chan1 = (100 * t *
+         numpy.sin(2 * pi * fb1 * t) *
+         numpy.sin(2 * pi * fa1 * t * numpy.sin(2 * pi * fb1 * t)));
+chan2 = (100 * t *
+         numpy.sin(2 * pi * fb2 * t) *
+         numpy.sin(2 * pi * fa2 * t * numpy.sin(2 * pi * fb2 * t)));
 
 # printout size - same as t
 print(len(chan1))
@@ -32,8 +40,8 @@ print(len(chan1))
 # format specifier - C
 # "%.5f": total places expand (but leading 0 is not dropped); 5 is decimal places limit
 # these two commands may take some 25 sec each to execute.. 
-numpy.savetxt("chan1.py.dat",chan1,fmt="%.5f")
-numpy.savetxt("chan2.py.dat",chan2,fmt="%.5f")
+numpy.savetxt("chan1.py.dat", chan1, fmt="%.5f")
+numpy.savetxt("chan2.py.dat", chan2, fmt="%.5f")
 
 # These commands should generate two ASCII files of around 8MB each:
 
