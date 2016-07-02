@@ -1,4 +1,29 @@
 import numpy
+import argparse
+import sys
+
+parser = argparse.ArgumentParser(description="""
+Generate a data file containing 2 data series in it.
+
+By default, the set of time values for which the 2 data series are
+defined will be the same.
+""")
+parser.add_argument('--format', dest='format', choices=['mwfview', 'vcd', 'ascii'],
+                    help="""Format of output file(s).
+                    'ascii' is the ASCII file format
+                    expected by the program gaw.  'vcd' is
+                    Value Change Dump, a de facto industry
+                    standard used by many wavevorm viewers.
+                    'mwfview' is simply one analog value per
+                    line, with separate files for each data
+                    series, for the mwfview.py program.
+                    """)
+args = parser.parse_known_args()[0]
+
+if args.format is None:
+    print("Must specify value for the --format option")
+    sys.exit(1)
+
 
 # generate time axis - increasing steps of period
 # use arrange - from min to max using step
@@ -36,15 +61,67 @@ chan2 = (100 * t *
 # printout size - same as t
 print(len(chan1))
 
-# save data as files 
-# format specifier - C
-# "%.5f": total places expand (but leading 0 is not dropped); 5 is decimal places limit
-# these two commands may take some 25 sec each to execute.. 
-numpy.savetxt("chan1.py.dat", chan1, fmt="%.5f")
-numpy.savetxt("chan2.py.dat", chan2, fmt="%.5f")
+# save data as file(s)
 
-# These commands should generate two ASCII files of around 8MB each:
+if args.format == 'mwfview':
+    # "%.5f": total places expand (but leading 0 is not dropped); 5 is
+    # decimal places limit.
+    # These two commands may take some 25 sec each to execute.
+    numpy.savetxt("chan1.py.dat", chan1, fmt="%.5f")
+    numpy.savetxt("chan2.py.dat", chan2, fmt="%.5f")
 
-# % du -h *.dat
-# 8.1M	chan1.py.dat
-# 8.1M	chan2.py.dat
+    # These commands should generate two ASCII files of around 8MB each:
+
+    # % du -h *.dat
+    # 8.1M	chan1.py.dat
+    # 8.1M	chan2.py.dat
+
+elif args.format == 'vcd':
+
+    print('Writing data to file data.vcd ...')
+    with open('data.vcd','w') as f:
+        # Print VCD header and variable definitions
+        print("""$comment
+File created using gen_data_vcd.py using the following command:
+%s
+$end
+$date
+%s
+$end
+$version
+%s
+$end
+$timescale
+1ns
+$end
+$scope module all $end
+$var real 64 <0 chan1 $end
+$var real 64 <1 chan2 $end
+$upscope $end
+$enddefinitions $end
+$dumpvars
+        """ % (' '.join(sys.argv),
+               'tbd - call some function to produce date & time as str',
+               'version 1.0'),
+              file=f)
+        # Print initial values without a '#' line for the time,
+        # followed by changes in values at later times.
+        for i in range(0, len(t)):
+            now = t[i]
+            if i != 0:
+                print('#%d' % (int(now * 1000000000.0)), file=f)
+            print('r%.16g <0' % (chan1[i]), file=f)
+            print('r%.16g <1' % (chan2[i]), file=f)
+
+elif args.format == 'ascii':
+
+    print('Writing data to file data.ascii ...')
+    with open('data.ascii','w') as f:
+        # Print gaw ASCII header and variable definitions
+        print("#time chan1 chan2", file=f)
+        for i in range(0, len(t)):
+            now = t[i]
+            print('%.16g' % (now), file=f, end='')
+            print(' %.16g' % (chan1[i]), file=f, end='')
+            print(' %.16g' % (chan2[i]), file=f, end='')
+            print('', file=f)
