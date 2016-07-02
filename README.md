@@ -57,11 +57,37 @@ Ubuntu 14.04 LTS.
 | Software | OS X | Linux |
 | -------- | ---- | ----- |
 | gtkwave | `sudo port install gtkwave` installed version 3.3.48 | `sudo apt-get install gtkwave` installed version 3.3.58 (package version 3.3.58-1) |
-| gwave | | `sudo apt-get install gwave` installed (non-functioning [1]) package version 20090213-4 |
-| matplotlib | `sudo port install py34-matplotlib` installed incomplete [2] version 1.5.1 (package version 1.5.1_3) | `sudo apt-get install python3-matplotlib` installed version 1.3.1 (package version 1.3.1-1ubuntu5) |
+| gaw | [1] | [1] |
+| gwave | | `sudo apt-get install gwave` installed (non-functioning [2]) package version 20090213-4 |
+| matplotlib | `sudo port install py34-matplotlib` installed incomplete [3] version 1.5.1 (package version 1.5.1_3) | `sudo apt-get install python3-matplotlib` installed version 1.3.1 (package version 1.3.1-1ubuntu5) |
 
 
-[1] Notes on gwave being non-functional
+[1] `gaw` installation steps
+
+I could not find `gaw` available as an Ubuntu package, so build it
+from source code instead.  Ubuntu 14.04 has GTK+ binaries installed by
+default already, but to build `gaw` from source also requires the
+following package, which contains header and development files needed
+for building GTK+ applications.
+
+    sudo apt-get install libgtk-3-dev
+
+Downloaded the most recent version of `gaw` available as of July 2,
+2016, which was this:
+
+* [http://download.tuxfamily.org/gaw/download/gaw3-20160305.tar.gz](http://download.tuxfamily.org/gaw/download/gaw3-20160305.tar.gz)
+
+Use `tar` to uncompress and untar it, then follow instructions in file
+`INSTALL`, i.e. `./configure`, `make`.  Binary built as `src/gaw`.
+
+There was a MacPorts package named `gaw`, but the version number
+looked a bit older than the most recent one.  Downloading the source
+and following the `INSTALL` steps above worked on my OS X machine.  It
+may have required that I had previously installed the `gtk3` MacPorts
+package.
+
+
+[2] Notes on `gwave` being non-functional
 
 gwave (package version 20090213-4)
 
@@ -84,7 +110,7 @@ Two of the comments on that issue mention `gaw` as an alternative for
 `gwave`, so I tried that out, too.
 
 
-[2] Notes on how OS X matplotlib 1.5.1_3 is incomplete
+[3] Notes on how OS X `matplotlib` 1.5.1_3 is incomplete
 
 TBD: Is there a bug open for this issue?
 
