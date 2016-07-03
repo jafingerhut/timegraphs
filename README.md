@@ -103,6 +103,11 @@ Downloaded the most recent version of `gaw` available as of July 2,
 
 Use `tar` to uncompress and untar it, then follow instructions in file
 `INSTALL`, i.e. `./configure`, `make`.  Binary built as `src/gaw`.
+Note: If you do not do the `make install` step, but stop at `make`,
+there is a `gaw` binary, but there are config files that by default
+are not in the right place to be found, such that many items in the
+GUI do not have any color defined for them, so they do not appear,
+including the data series.
 
 There was a MacPorts package named `gaw`, but the version number
 looked a bit older than the most recent one.  Downloading the source
@@ -189,6 +194,49 @@ Again, from the output, all of the files were in the directory below:
     ./backend_gtkagg.py
     ./backend_tkagg.py
     ./tkagg.py
+
+
+# Notes on using `gaw`
+
+TBD: I was not able to figure out a way to have a single data file for
+`gaw` that had different time values for different data series.  I
+could easily create multiple files, one for each data series, with
+different time values for each.  By default, they are displayed with
+the same color as each other in the GUI.
+
+There is a way to change the color of selected data series in the GUI.
+Right-click on the name of the data series, and a pop-up menu appears
+with the choices "Delete this Wave", "Change Color...", and "Reload
+All waves".
+
+`gaw` calls a single chart with its own Y axis a 'panel'.  It is easy
+to add new panels or remove existing ones in the GUI ("Add Panel" and
+"Del Panel" buttons in the tool bar row being one way).  However, it
+seemed that the default behavior (and maybe only behavior) is that
+every panel is the same height as each other, and the height of all of
+them auto-adjusts to be 1/N of the height of the window, so they are
+always all visible.
+
+TBD: Is there a way to make different panels have different heights
+from each other?
+
+TBD: Is there a way to make the total height of all panels taller than
+the height of the window, and then scroll up/down through the panels
+to make only some of them visible?
+
+TBD: Is there a way to easily reorder panels, e.g. by click and drag
+in the GUI?
+
+TBD: Using the mouse wheel seems to do nothing.  It would be nice if
+it could be used to zoom in/out or pan forward/back in time.
+
+Right-click inside a panel gives pop-up menu with many choices.
+
+TBD: Right-click and choosing "Zoom Y..." does let you pick a subrange
+of all Y values and zoom the Y axis in on that subrange.  However, it
+seems to change the X scale to include all time values at the same
+time.  It would be nice if it had no effect on the displayed X range
+at all.
 
 
 
