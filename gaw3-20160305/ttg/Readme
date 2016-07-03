@@ -1,0 +1,7 @@
+
+First run gaw:
+gaw -p 1946
+
+pttg -f Ascii -o myfile <host>
+
+ttg -p 1946 -f myfile  <host>

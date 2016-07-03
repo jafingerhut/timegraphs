@@ -1,0 +1,78 @@
+/* gaw-gtkrc.css */
+
+@define-color wavecolor0  #6680ff;  /* blue */
+@define-color wavecolor1  #ff0000;  /* red */
+@define-color wavecolor2  #00ff00;  /* green */
+@define-color wavecolor3  #ffff00;  /* yellow */
+@define-color wavecolor4  #00ffff;  /* cyan */
+@define-color wavecolor5  #ff00ff;  /* purple */
+
+@define-color graticule  #662828;   /* dark red */
+@define-color highlight  #ffffff;   /* white */
+@define-color srange     #ffffff;   /* white */
+
+@define-color dacursor0  #ffffff;   /* white */
+@define-color dacursor1  #ffff00;   /* yellow */
+
+@define-color da-bg  #000000;   /* black */
+
+* {
+    font: Sans 8;
+}
+
+
+#cursor0 {
+    color: #ffffff; /* white */
+}
+
+#cursor1 {
+    color: #ffff00; /* yellow */
+}
+
+#cursorD {
+    color: #00ff00; /* green */
+}
+
+GtkButton#wavebutton {
+    background-color: #404040;
+}
+
+/* This sets the waveform button background. */
+GtkButton#wavebutton:active {
+    background-color: #666666;
+}
+
+/* Theme buttons with the mouse pointer on it,    both are equivalent */
+GtkButton#wavebutton:hover, GtkButton#wavebutton:prelight {
+    background-color: #4c4c4c;
+}
+
+GtkButton#wavebutton:selected {
+    background-color: #404040;
+}
+
+
+/* no longer used */
+#wavepanel {
+	background-color: #000000;
+}
+
+#statusbar {
+    color: #ff0000;
+}	
+
+#gawgrip {
+    background-color: #e0c0a0;
+}
+
+/*
+#listButton {
+    color: #ffffff;
+    background-color: #404040;
+}
+*/
+
+GtkButton#listButton:hover, GtkButton#listButton:prelight {
+    background-color: #4c4c4c;
+}
+
