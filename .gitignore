@@ -1,0 +1,12 @@
+gaw3-20160305/TAGS
+gaw3-20160305/**/Makefile
+gaw3-20160305/**/Makefile.in
+gaw3-20160305/**/.deps/
+gaw3-20160305/**/config.h
+gaw3-20160305/**/config.log
+gaw3-20160305/**/config.status
+gaw3-20160305/**/POTFILES
+gaw3-20160305/**/stamp-h1
+gaw3-20160305/**/*.o
+gaw3-20160305/**/*.a
+gaw3-20160305/src/gaw
