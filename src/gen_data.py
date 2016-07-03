@@ -9,20 +9,40 @@ By default, the set of time values for which the 2 data series are
 defined will be the same.
 """)
 parser.add_argument('--format', dest='format', choices=['mwfview', 'vcd', 'ascii'],
-                    help="""Format of output file(s).
-                    'ascii' is the ASCII file format
-                    expected by the program gaw.  'vcd' is
-                    Value Change Dump, a de facto industry
-                    standard used by many wavevorm viewers.
-                    'mwfview' is simply one analog value per
-                    line, with separate files for each data
-                    series, for the mwfview.py program.
+                    help="""
+                    Format of output file(s).  'ascii' is the ASCII
+                    file format expected by the program gaw.  'vcd' is
+                    Value Change Dump, a de facto industry standard
+                    used by many wavevorm viewers.  'mwfview' is
+                    simply one analog value per line, with separate
+                    files for each data series, for the mwfview.py
+                    program.
+                    """)
+parser.add_argument('--different-times', dest='different_times',
+                    action='store_true',
+                    help="""
+                    Without this option, all data series will be
+                    defined for the same values of time.  With this
+                    option, different data series will be defined for
+                    different sets of time values.
                     """)
 args = parser.parse_known_args()[0]
 
 if args.format is None:
     print("Must specify value for the --format option")
     sys.exit(1)
+
+same_times = True
+if args.different_times:
+    print("chan1, chan2 data series will be defined"
+          " for different sets of time values.")
+    same_times = False
+
+def chan1_defined(t):
+    return same_times or (t < 0.03)
+
+def chan2_defined(t):
+    return same_times or (t > 0.02)
 
 
 # generate time axis - increasing steps of period
@@ -110,18 +130,27 @@ $dumpvars
             now = t[i]
             if i != 0:
                 print('#%d' % (int(now * 1000000000.0)), file=f)
-            print('r%.16g <0' % (chan1[i]), file=f)
-            print('r%.16g <1' % (chan2[i]), file=f)
+            if chan1_defined(now):
+                print('r%.16g <0' % (chan1[i]), file=f)
+            if chan2_defined(now):
+                print('r%.16g <1' % (chan2[i]), file=f)
 
 elif args.format == 'ascii':
 
-    print('Writing data to file data.ascii ...')
-    with open('data.ascii','w') as f:
-        # Print gaw ASCII header and variable definitions
-        print("#time chan1 chan2", file=f)
+    print('Writing data to files chan1.asc chan2.asc ...')
+    with open('chan1.asc','w') as f:
+        print("#time chan1", file=f)
         for i in range(0, len(t)):
             now = t[i]
-            print('%.16g' % (now), file=f, end='')
-            print(' %.16g' % (chan1[i]), file=f, end='')
-            print(' %.16g' % (chan2[i]), file=f, end='')
-            print('', file=f)
+            if chan1_defined(now):
+                print('%.16g' % (now), file=f, end='')
+                print(' %.16g' % (chan1[i]), file=f, end='')
+                print('', file=f)
+    with open('chan2.asc','w') as f:
+        print("#time chan2", file=f)
+        for i in range(0, len(t)):
+            now = t[i]
+            if chan2_defined(now):
+                print('%.16g' % (now), file=f, end='')
+                print(' %.16g' % (chan2[i]), file=f, end='')
+                print('', file=f)
